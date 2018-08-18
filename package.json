@@ -1,0 +1,30 @@
+{
+  "name": "valve-server-query",
+  "version": "0.1.0",
+  "description": "Query Valve game servers",
+  "scripts": {
+    "compile": "babel src/ -d lib/",
+    "prepublish": "npm run compile",
+    "test": "node -r babel-register test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tenub/valve-server-query.git"
+  },
+  "author": "Joseph Chrzan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tenub/valve-server-query/issues"
+  },
+  "homepage": "https://github.com/tenub/valve-server-query#readme",
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-plugin-transform-object-rest-spread": "^6.23.0",
+    "babel-preset-env": "^1.7.0"
+  },
+  "dependencies": {
+    "int64-buffer": "^0.1.10",
+    "seek-bzip": "^1.0.5",
+    "winston": "^3.0.0"
+  }
+}
