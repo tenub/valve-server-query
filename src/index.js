@@ -8,7 +8,7 @@ const bzip = require('seek-bzip');
 const { Uint64LE } = require('int64-buffer');
 const { createLogger, transports } = require('winston');
 
-const utils = require('./lib/utils');
+const utils = require('./utils');
 const servers = require('./servers');
 
 const logger = createLogger({
@@ -19,14 +19,14 @@ const logger = createLogger({
 });
 
 class RequestPacket {
-  constructor(type: string) {
+  constructor(type) {
     switch (type) {
       case 'info':
         return this.info();
     }
   }
 
-  info(): Buffer {
+  info() {
     const packet = Buffer.alloc(25);
 
     let index = packet.writeInt32LE(-1, 0);
@@ -39,17 +39,14 @@ class RequestPacket {
 }
 
 class ResponsePacket {
-  data: Buffer;
-  index: number;
-
-  constructor(data: Buffer) {
+  constructor(data) {
     this.data = data;
     this.index = 0;
 
     //this.readInt = this.readInt.bind(this);
   }
 
-  readInt(bytes: number = 1): number {
+  readInt(bytes = 1) {
     const value = (
       bytes === 8 ?
         new Uint64LE(this.data, this.index) :
@@ -65,7 +62,7 @@ class ResponsePacket {
     return value;
   }
 
-  readFloat(): number {
+  readFloat() {
     const value = this.data.readFloatLE(this.index);
 
     this.index += 4;
@@ -73,14 +70,14 @@ class ResponsePacket {
     return value;
   }
 
-  readChar(): string {
+  readChar() {
     const chrCode = this.readInt(1);
     const chr = String.fromCharCode(chrCode);
 
     return chr;
   }
 
-  readString(): string {
+  readString() {
     const start = this.index;
 
     while (this.index < this.data.length) {
@@ -96,17 +93,7 @@ class ResponsePacket {
 }
 
 class ServerQuery extends EventEmitter {
-  timestamp: number;
-  socket: Object;
-  connections: Array<Object>;
-
-  handleSocketError: function;
-  handleSocketMessage: function;
-  sendRequests: function;
-  sendInfoPacket: function;
-  sendPacket: function;
-
-  constructor(connections: Array<Object>, options: Object = {}) {
+  constructor(connections, options = {}) {
     super();
 
     // bind this class to its methods
@@ -138,7 +125,7 @@ class ServerQuery extends EventEmitter {
     this.sendRequests();
   }
 
-  async resolveHost(hostname: string): Promise<Array<string>> {
+  async resolveHost(hostname) {
     return new Promise((resolve, reject) => {
       dns.resolve(hostname, 'A', (err, records) => {
         if (err) {
@@ -150,7 +137,7 @@ class ServerQuery extends EventEmitter {
     })
   }
 
-  async resolveConnections(): Object {
+  async resolveConnections() {
     const hostnames = this.connections.map(({ host }) => host);
     const addresses = await Promise.all(hostnames.map(this.resolveHost));
 
@@ -167,11 +154,11 @@ class ServerQuery extends EventEmitter {
     await Promise.all(this.connections.map(this.sendInfoPacket));
   }
 
-  handleSocketError(err: Error) {
+  handleSocketError(err) {
     this.emit('error', err);
   }
 
-  handleSocketMessage(msg: Buffer, { address, port }): boolean {
+  handleSocketMessage(msg, { address, port }) {
     if (!msg.length) {
       this.emit('error', new Error('Expected a response.'));
       return false;
@@ -209,17 +196,7 @@ class ServerQuery extends EventEmitter {
         const visibility = packet.readInt(1);
         const vac = packet.readInt(1);
 
-        let data: {
-          mode?: number,
-          witnesses?: number,
-          duration?: number,
-          version?: string,
-          port?: number,
-          steamid?: string,
-          spectator?: Object,
-          keywords?: string,
-          gameid?: string
-        } = {
+        let data = {
           protocol,
           name,
           map,
@@ -297,11 +274,7 @@ class ServerQuery extends EventEmitter {
         const visibility = packet.readInt(1);
         const mod = packet.readInt(1);
 
-        const data: {
-          mod?: number | Object,
-          vac?: number,
-          bots?: number
-        } = {
+        const data = {
           address,
           name,
           map,
@@ -317,12 +290,7 @@ class ServerQuery extends EventEmitter {
         };
 
         if (data.mod === 1) {
-          const mod: {
-            version?: number,
-            size?: number,
-            type?: number,
-            dll?: number
-          } = {
+          const mod = {
             link: packet.readString(),
             downloadlink: packet.readString()
           };
@@ -370,7 +338,7 @@ class ServerQuery extends EventEmitter {
     return true;
   }
 
-  async sendPacket(packet: Buffer, port: number, address: string): Promise<function> {
+  async sendPacket(packet, port, address) {
     return new Promise((resolve, reject) => {
       this.socket.send(packet, 0, packet.length, port, address, (err, bytes) => {
         if (err) {
@@ -382,7 +350,7 @@ class ServerQuery extends EventEmitter {
     });
   }
 
-  async sendInfoPacket({ host, port }): Promise<boolean> {
+  async sendInfoPacket({ host, port }) {
     const packet = new RequestPacket('info');
 
     try {
