@@ -4,7 +4,8 @@
       "targets": {
         "node": true
       }
-    }]
+    }],
+    "flow"
   ],
   "plugins": [
     ["transform-object-rest-spread", {

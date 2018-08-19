@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "description": "Query Valve game servers",
   "scripts": {
-    "compile": "babel src/ -d lib/",
-    "prepublish": "npm run compile",
+    "build": "babel src/ -d lib/",
+    "flow": "flow",
+    "prepublish": "npm run build",
     "test": "node -r babel-register test"
   },
   "repository": {
@@ -20,7 +21,9 @@
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-plugin-transform-object-rest-spread": "^6.23.0",
-    "babel-preset-env": "^1.7.0"
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-flow": "^6.23.0",
+    "flow-bin": "^0.79.1"
   },
   "dependencies": {
     "int64-buffer": "^0.1.10",
