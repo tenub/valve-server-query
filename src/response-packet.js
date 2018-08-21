@@ -4,10 +4,11 @@ class ResponsePacket {
   constructor(data) {
     this.data = data;
     this.index = 0;
-
-    //this.readInt = this.readInt.bind(this);
   }
 
+  /**
+   * Read a long long, long, short, or integer from a response packet
+   */
   readInt(bytes = 1) {
     const value = (
       bytes === 8 ?
@@ -24,6 +25,9 @@ class ResponsePacket {
     return value;
   }
 
+  /**
+   * Read a float from a response packet
+   */
   readFloat() {
     const value = this.data.readFloatLE(this.index);
 
@@ -32,6 +36,9 @@ class ResponsePacket {
     return value;
   }
 
+  /**
+   * Read a character (integer) from a response packet
+   */
   readChar() {
     const chrCode = this.readInt(1);
     const chr = String.fromCharCode(chrCode);
@@ -39,6 +46,10 @@ class ResponsePacket {
     return chr;
   }
 
+  /**
+   * Read a string from a response packet
+   * A string will always be terminated with a "0"
+   */
   readString() {
     const start = this.index;
 

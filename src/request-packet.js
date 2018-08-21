@@ -12,12 +12,15 @@ class RequestPacket {
       case 'rules':
         return this.rules();
       case 'challenge':
-        return this.getchallenge();
+        return this.getChallenge();
       case 'ping':
         return this.ping();
     }
   }
 
+  /**
+   * Create an info request packet
+   */
   info() {
     this.data = Buffer.alloc(25);
 
@@ -29,6 +32,9 @@ class RequestPacket {
     return this.data;
   }
 
+  /**
+   * Create a player request packet
+   */
   player() {
     this.data = Buffer.alloc(9);
 
@@ -39,6 +45,9 @@ class RequestPacket {
     return this.data;
   }
 
+  /**
+   * Create a rules request packet
+   */
   rules() {
     this.data = Buffer.alloc(9);
 
@@ -49,6 +58,9 @@ class RequestPacket {
     return this.data;
   }
 
+  /**
+   * Create a ping request packet
+   */
   ping() {
     this.data = Buffer.alloc(5);
 
@@ -58,7 +70,10 @@ class RequestPacket {
     return this.data;
   }
 
-  getchallenge() {
+  /**
+   * Create a challenge request packet
+   */
+  getChallenge() {
     this.data = Buffer.alloc(5);
 
     this.index = this.data.writeInt32LE(-1, 0);

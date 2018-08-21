@@ -1,34 +1,61 @@
+const assert = require('assert');
+
 const ServerQuery = require('../src');
 const servers = require('./servers');
 
-const serverQuery = new ServerQuery(servers);
+describe('ServerQuery', async () => {
+  const serverQuery = new ServerQuery(servers);
 
-serverQuery.on('error', (err) => {
-  console.error(err);
-  process.exit(1);
-});
+  // all events that can have handlers attached
+  serverQuery.on('error', (err) => {});
+  serverQuery.on('info', (data) => {});
+  serverQuery.on('player', (data) => {});
+  serverQuery.on('rules', (data) => {});
+  serverQuery.on('ping', (data) => {});
+  serverQuery.on('challenge', (data) => {});
+  serverQuery.on('done', (connections) => {});
 
-serverQuery.on('done', (data) => {
-  // done
-  //console.info(data);
-});
+  await describe('#connect()', async () => {
+    it('should not have a socket reference before connecting', () => {
+      assert.strictEqual(serverQuery.socket, null);
+    });
 
-serverQuery.on('info', (data) => {
-  // info response
-});
+    it('should have a socket reference once connected', async () => {
+      await serverQuery.connect();
 
-serverQuery.on('player', () => {
-  // player response
-});
+      assert.ok(serverQuery.socket);
+    });
+  });
 
-serverQuery.on('rules', () => {
-  // rules response
-});
+  await describe('#query()', async () => {
+    await it('should return an empty array when the input array is empty', async () => {
+      serverQuery.connections = [];
 
-serverQuery.on('ping', (data) => {
-  // ping response
-});
+      await serverQuery.query();
 
-serverQuery.on('challenge', () => {
-  // challenge response
+      serverQuery.on('done', (data) => {
+        assert.strictEqual(data, []);
+      });
+    });
+
+    await it('should return an empty array when the input array is missing', async () => {
+      delete serverQuery.connections;
+
+      await serverQuery.query();
+
+      serverQuery.on('done', (data) => {
+        assert.strictEqual(data, []);
+      });
+    });
+
+    await it('should emit an error when an invalid input connection exists', async () => {
+      serverQuery.connections = ['string'];
+
+      await serverQuery.query();
+
+      serverQuery.on('error', (err) => {
+        assert.strictEqual(err instanceof Error, true);
+      });
+    });
+  });
 });
