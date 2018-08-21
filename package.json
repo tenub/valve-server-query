@@ -5,6 +5,7 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "babel src/ -d lib/",
+    "doc": "jsdoc -d doc/ src/",
     "prepublishOnly": "npm run build",
     "test": "cross-env DEBUG=query mocha -r babel-register"
   },
@@ -26,6 +27,7 @@
     "cross-env": "^5.2.0",
     "debug": "^3.1.0",
     "eslint": "^5.4.0",
+    "jsdoc": "^3.5.5",
     "mocha": "^5.2.0"
   },
   "dependencies": {

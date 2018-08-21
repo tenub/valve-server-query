@@ -1,13 +1,35 @@
 const { Uint64LE } = require('int64-buffer');
 
+/**
+ * @class ResponsePacket
+ */
 class ResponsePacket {
+  /**
+   * Create a ResponsePacket
+   * @param {Buffer} data
+   */
   constructor(data) {
+    /**
+     * @type {Buffer}
+     * @default data
+     */
     this.data = data;
+
+    /**
+     * @name RequestPacket#index
+     * @type {number}
+     * @default 0
+     */
     this.index = 0;
   }
 
   /**
    * Read a long long, long, short, or integer from a response packet
+   *
+   * @memberof ResponsePacket
+   * @method readInt
+   * @param {number} [bytes=1] Number of bytes to read
+   * @returns {number} Integer value
    */
   readInt(bytes = 1) {
     const value = (
@@ -27,6 +49,10 @@ class ResponsePacket {
 
   /**
    * Read a float from a response packet
+   *
+   * @memberof ResponsePacket
+   * @method readFloat
+   * @returns {number} Float value
    */
   readFloat() {
     const value = this.data.readFloatLE(this.index);
@@ -38,6 +64,10 @@ class ResponsePacket {
 
   /**
    * Read a character (integer) from a response packet
+   *
+   * @memberof ResponsePacket
+   * @method readChar
+   * @returns {string} Character value
    */
   readChar() {
     const chrCode = this.readInt(1);
@@ -49,6 +79,10 @@ class ResponsePacket {
   /**
    * Read a string from a response packet
    * A string will always be terminated with a "0"
+   *
+   * @memberof ResponsePacket
+   * @method readString
+   * @returns {string} String value
    */
   readString() {
     const start = this.index;

@@ -1,27 +1,53 @@
+/**
+ * @class RequestPacket
+ */
 class RequestPacket {
+  /**
+   * Create a RequestPacket
+   * @param {string} type
+   * @param {number} [challenge=-1]
+   */
   constructor(type, challenge = -1) {
+    /**
+     * @type {?Buffer}
+     * @default null
+     */
     this.data = null;
+
+    /**
+     * @type {number}
+     * @default 0
+     */
     this.index = 0;
+
+    /**
+     * @type {number}
+     * @default challenge
+     */
     this.challenge = challenge;
 
     switch (type) {
       case 'info':
-        return this.info();
+        return this._info();
       case 'player':
-        return this.player();
+        return this._player();
       case 'rules':
-        return this.rules();
+        return this._rules();
       case 'challenge':
-        return this.getChallenge();
+        return this._getChallenge();
       case 'ping':
-        return this.ping();
+        return this._ping();
     }
   }
 
   /**
    * Create an info request packet
+   *
+   * @memberof RequestPacket
+   * @method info
+   * @returns {Buffer} Packet data
    */
-  info() {
+  _info() {
     this.data = Buffer.alloc(25);
 
     this.index = this.data.writeInt32LE(-1, 0);
@@ -34,8 +60,12 @@ class RequestPacket {
 
   /**
    * Create a player request packet
+   *
+   * @memberof RequestPacket
+   * @method player
+   * @returns {Buffer} Packet data
    */
-  player() {
+  _player() {
     this.data = Buffer.alloc(9);
 
     this.index = this.data.writeInt32LE(-1, 0);
@@ -47,8 +77,12 @@ class RequestPacket {
 
   /**
    * Create a rules request packet
+   *
+   * @memberof RequestPacket
+   * @method rules
+   * @returns {Buffer} Packet data
    */
-  rules() {
+  _rules() {
     this.data = Buffer.alloc(9);
 
     this.index = this.data.writeInt32LE(-1, 0);
@@ -60,8 +94,12 @@ class RequestPacket {
 
   /**
    * Create a ping request packet
+   *
+   * @memberof RequestPacket
+   * @method ping
+   * @returns {Buffer} Packet data
    */
-  ping() {
+  _ping() {
     this.data = Buffer.alloc(5);
 
     this.index = this.data.writeInt32LE(-1, 0);
@@ -72,8 +110,12 @@ class RequestPacket {
 
   /**
    * Create a challenge request packet
+   *
+   * @memberof RequestPacket
+   * @method getChallenge
+   * @returns {Buffer} Packet data
    */
-  getChallenge() {
+  _getChallenge() {
     this.data = Buffer.alloc(5);
 
     this.index = this.data.writeInt32LE(-1, 0);
