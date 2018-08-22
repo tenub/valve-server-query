@@ -15,12 +15,20 @@ describe('ServerQuery', async () => {
   serverQuery.on('challenge', (data) => {});
   serverQuery.on('done', (connections) => {});
 
+  await it('should have a reference of the connections array', async () => {
+    console.info(serverQuery.connections);
+    console.info(servers);
+    assert.deepStrictEqual(serverQuery.connections, servers);
+  });
+
+
   await describe('#connect()', async () => {
-    it('should not have a socket reference before connecting', () => {
+    it('should not have a socket reference before connecting', async (done) => {
       assert.strictEqual(serverQuery.socket, null);
+      done();
     });
 
-    it('should have a socket reference once connected', async () => {
+    await it('should have a socket reference once connected', async () => {
       await serverQuery.connect();
 
       assert.ok(serverQuery.socket);

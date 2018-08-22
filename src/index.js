@@ -7,50 +7,85 @@ const debug = require('debug')('query');
 const RequestPacket = require('./request-packet');
 const ResponsePacket = require('./response-packet');
 
+/**
+ * @class ServerQuery
+ * @param {Object[]} connections Array of servers to query
+ * @param {string} connections[].host Server hostname or IPv4 address
+ * @param {number} connections[].port Server port
+ * @param {Object} options Custom options
+ * @param {number} options.timeout Socket timeout in milliseconds
+ */
 class ServerQuery extends EventEmitter {
   constructor(connections, options) {
     super();
 
+    /**
+     * Options reference merged with default options
+     *
+     * @type {Object}
+     * @property {number} timeout Timeout for socket connection
+     */
     this.options = {
       timeout: 2000,
       ...options
     };
 
-    // bind this class to its event handlers
+    // Bind this class to its event handlers
     this._handleSocketError = this._handleSocketError.bind(this);
     this._handleSocketMessage = this._handleSocketMessage.bind(this);
     this._socketTimeout = this._socketTimeout.bind(this);
 
-    // declare a socket for when the connect method is called
+    /**
+     * Socket reference for when the connect method is called
+     *
+     * @type {?Object}
+     * @default null
+     */
     this.socket = null;
 
-    // declare a socket timeout
-    // this is set just before sending initial requests
+    /**
+     * Socket timeout reference, set just before sending initial requests
+     *
+     * @type {?number}
+     * @default null
+     */
     this.timeout = null;
 
-    // store a reference of the connections array
+    /**
+     * Connections array reference
+     *
+     * @type {Object[]}
+     * @default connections
+     */
     this.connections = connections;
   }
 
   /**
    * Set up a socket to send and receive requests
+   *
+   * @returns {this} this
    */
   async connect() {
-    await this._connect();
+    try {
+      await this._connect();
+    } catch (err) {
+      this.emit('error', err);
+    }
 
     return this;
   }
 
   /**
-   * Send initial info request to each connection
-   * Further requests are sent on completion of each preceding request
-   * Until all queries are fulfilled
+   * Send initial info request to each connection. Further requests are sent on completion of each preceding request until all queries are fulfilled. If no connections are present null is returned.
+   *
+   * @returns {?this} this
    */
   async query() {
     if (!this.connections) {
       this.socket.close();
-      this.emit('done', false);
-      return false;
+      this.emit('done', null);
+
+      return null;
     }
 
     try {
@@ -76,14 +111,20 @@ class ServerQuery extends EventEmitter {
   }
 
   /**
-   * Emit an error if the socket receives one
+   * Event handler for socket errors that emits an error if the socket receives one
+   * @param {Error} err
    */
   _handleSocketError(err) {
     this.emit('error', err);
   }
 
   /**
-   * Parse query response packets from the remote host
+   * Event handler for socket messages that parses query response packets from the remote host
+   * @param {Buffer} msg Received data
+   * @param {Object} rinfo
+   * @param {string} remote IPv4 address
+   * @param {number} remote port
+   * @returns {Boolean} Whether the message was parsed
    */
   _handleSocketMessage(msg, { address, port }) {
     if (!msg.length) {
@@ -237,9 +278,10 @@ class ServerQuery extends EventEmitter {
   }
 
   /**
-   * Parse a packet from a split response
-   * Store each packet in its corresponding connection and index
-   * Return the fully combined response as a single buffer
+   * Parse a packet from a split response. Store each packet in its corresponding connection and packet index
+   * @param {ResponsePacket} packet Response packet
+   * @param {number} connectionIndex Corresponding connection index
+   * @returns {Buffer|Boolean} Combined response or false if not every packet has been collected yet
    */
   _parseMultiPacket(packet, connectionIndex) {
     const connection = this.connections[connectionIndex] || {};
@@ -317,7 +359,37 @@ class ServerQuery extends EventEmitter {
   }
 
   /**
+   * @typedef {Object} ResultInfo
+   * @property {number} protocol
+   * @property {string} name
+   * @property {string} map
+   * @property {string} folder
+   * @property {string} game
+   * @property {number} id
+   * @property {number} players
+   * @property {number} maxplayers
+   * @property {number} bots
+   * @property {string} type
+   * @property {string} environment
+   * @property {number} visibility
+   * @property {number} vac
+   * @property {number} [mode]
+   * @property {number} [witnesses]
+   * @property {number} [duration]
+   * @property {number} version
+   * @property {number} [port]
+   * @property {string} [steamid]
+   * @property {Object} [spectator]
+   * @property {number} [spectator.port]
+   * @property {string} [spectator.name]
+   * @property {string} [keywords]
+   * @property {string} [gameid]
+   */
+
+  /**
    * Parse a packet as an info response
+   * @param {ResponsePacket} packet Response packet
+   * @returns {ResultInfo} data Resulting info object
    */
   _parseInfo(packet) {
     const protocol = packet.readInt(1);
@@ -399,7 +471,33 @@ class ServerQuery extends EventEmitter {
   }
 
   /**
+   * @typedef {Object} ResultInfoObsolete
+   * @property {string} address
+   * @property {string} name
+   * @property {string} map
+   * @property {string} folder
+   * @property {string} game
+   * @property {number} players
+   * @property {number} maxplayers
+   * @property {number} protocol
+   * @property {string} type
+   * @property {string} environment
+   * @property {number} visibility
+   * @property {number|Object} mod
+   * @property {string} mod.link
+   * @property {string} mod.downloadlink
+   * @property {number} mod.version
+   * @property {number} mod.size
+   * @property {number} mod.type
+   * @property {number} mod.dll
+   * @property {number} vac
+   * @property {number} bots
+   */
+
+  /**
    * Parse a packet as an obsolete info response
+   * @param {ResponsePacket} packet Response packet
+   * @returns {ResultInfoObsolete} data Resulting info object
    */
   _parseInfoObsolete(packet) {
     const address = packet.readString();
@@ -456,9 +554,10 @@ class ServerQuery extends EventEmitter {
   }
 
   /**
-   * Parse a packet as a player response
-   * A valid app id is needed to work correctly
-   * An info query result will contain the id
+   * Parse a packet as a player response. A valid app id is needed to work correctly which can be obtained from an info query result
+   * @param {ResponsePacket} packet Response packet
+   * @param {number} Application id of Steam game
+   * @returns {ResultPlayer} data Resulting players object
    */
   _parsePlayer(packet, appId) {
     const players = [];
@@ -498,6 +597,8 @@ class ServerQuery extends EventEmitter {
 
   /**
    * Parse a packet as a rules response
+   * @param {ResponsePacket} packet Response packet
+   * @returns {ResultRules} data Resulting rules object
    */
   _parseRules(packet) {
     const rules = [];
@@ -520,6 +621,8 @@ class ServerQuery extends EventEmitter {
 
   /**
    * Parse a packet as a challenge response
+   * @param {ResponsePacket} packet Response packet
+   * @returns {number} challenge Resulting challenge number
    */
   parseChallenge(packet) {
     const challenge = packet.readInt(4);

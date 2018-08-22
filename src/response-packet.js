@@ -2,11 +2,11 @@ const { Uint64LE } = require('int64-buffer');
 
 /**
  * @class ResponsePacket
+ * @param {Buffer} data Data received from the remote host
  */
 class ResponsePacket {
   /**
    * Create a ResponsePacket
-   * @param {Buffer} data
    */
   constructor(data) {
     /**
@@ -16,7 +16,6 @@ class ResponsePacket {
     this.data = data;
 
     /**
-     * @name RequestPacket#index
      * @type {number}
      * @default 0
      */

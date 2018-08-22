@@ -1,11 +1,11 @@
 /**
  * @class RequestPacket
+ * @param {string} type Type of request packet to create
+ * @param {number} [challenge=-1] A challenge number must be passed for player and rules packets. This is obtained by first creating a request packet of the respective type without a challenge.
  */
 class RequestPacket {
   /**
    * Create a RequestPacket
-   * @param {string} type
-   * @param {number} [challenge=-1]
    */
   constructor(type, challenge = -1) {
     /**
