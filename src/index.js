@@ -101,7 +101,7 @@ class ServerQuery extends EventEmitter {
         const [address] = addresses;
         this.connections[i] = { ...this.connections[i], host: address };
 
-        this.requestInfo(this.connections[i], i);
+        this._requestInfo(this.connections[i], i);
       }
     } catch (err) {
       this.emit('error', err);
@@ -112,18 +112,21 @@ class ServerQuery extends EventEmitter {
 
   /**
    * Event handler for socket errors that emits an error if the socket receives one
-   * @param {Error} err
+   * @param {Error} err Incoming error
+   * @returns {Boolean} Always true
    */
   _handleSocketError(err) {
     this.emit('error', err);
+
+    return true;
   }
 
   /**
    * Event handler for socket messages that parses query response packets from the remote host
    * @param {Buffer} msg Received data
-   * @param {Object} rinfo
-   * @param {string} remote IPv4 address
-   * @param {number} remote port
+   * @param {Object} rinfo Remote information
+   * @param {string} rinfo.address Remote IPv4 address
+   * @param {number} rinfo.port Remote port
    * @returns {Boolean} Whether the message was parsed
    */
   _handleSocketMessage(msg, { address, port }) {
@@ -252,7 +255,7 @@ class ServerQuery extends EventEmitter {
 
       // challenge response
       case 0x41: {
-        const data = this.parseChallenge(packet);
+        const data = this._parseChallenge(packet);
 
         this.emit('challenge', data);
 
@@ -554,10 +557,20 @@ class ServerQuery extends EventEmitter {
   }
 
   /**
+   * @typedef {Object} ResultPlayer
+   * @property {number} index
+   * @property {string} name
+   * @property {number} score
+   * @property {number} duration
+   * @property {number} deaths
+   * @property {number} money
+   */
+
+  /**
    * Parse a packet as a player response. A valid app id is needed to work correctly which can be obtained from an info query result
    * @param {ResponsePacket} packet Response packet
-   * @param {number} Application id of Steam game
-   * @returns {ResultPlayer} data Resulting players object
+   * @param {number} appId Application id of Steam game
+   * @returns {ResultPlayer[]} data Resulting players array
    */
   _parsePlayer(packet, appId) {
     const players = [];
@@ -596,9 +609,15 @@ class ServerQuery extends EventEmitter {
   }
 
   /**
+   * @typedef {Object} ResultRule
+   * @property {string} name
+   * @property {string} value
+   */
+
+  /**
    * Parse a packet as a rules response
    * @param {ResponsePacket} packet Response packet
-   * @returns {ResultRules} data Resulting rules object
+   * @returns {ResultRule[]} data Resulting rules array
    */
   _parseRules(packet) {
     const rules = [];
@@ -624,7 +643,7 @@ class ServerQuery extends EventEmitter {
    * @param {ResponsePacket} packet Response packet
    * @returns {number} challenge Resulting challenge number
    */
-  parseChallenge(packet) {
+  _parseChallenge(packet) {
     const challenge = packet.readInt(4);
 
     return challenge;
@@ -632,8 +651,14 @@ class ServerQuery extends EventEmitter {
 
   /**
    * Send an info request packet
+   *
+   * @param {Object} connection
+   * @param {string} connection.host
+   * @param {number} connection.port
+   * @param {number} connection index
+   * @returns {Boolean} Whether the request was successful
    */
-  async requestInfo({ host, port }, i) {
+  async _requestInfo({ host, port }, i) {
     const packet = new RequestPacket('info');
 
     try {
@@ -647,6 +672,13 @@ class ServerQuery extends EventEmitter {
 
   /**
    * Send a player request packet
+   *
+   * @param {Object} connection
+   * @param {string} connection.host
+   * @param {number} connection.port
+   * @param {number} connection._challengePlayer
+   * @param {number} connection index
+   * @returns {Boolean} Whether the request was successful
    */
   async _requestPlayer({ host, port, _challengePlayer }, i) {
     if (!_challengePlayer) {
@@ -668,6 +700,13 @@ class ServerQuery extends EventEmitter {
 
   /**
    * Send a rules request packet
+   *
+   * @param {Object} connection
+   * @param {string} connection.host
+   * @param {number} connection.port
+   * @param {number} connection._challengeRules
+   * @param {number} connection index
+   * @returns {Boolean} Whether the request was successful
    */
   async _requestRules({ host, port, _challengeRules }, i) {
     if (!_challengeRules) {
@@ -688,8 +727,13 @@ class ServerQuery extends EventEmitter {
   }
 
   /**
-   * Send a ping request packet
-   * Some servers may not respond depending on the game
+   * Send a ping request packet. Some servers may not respond depending on the game
+   *
+   * @param {Object} connection
+   * @param {string} connection.host
+   * @param {number} connection.port
+   * @param {number} connection index
+   * @returns {Boolean} Whether the request was successful
    */
   async _requestPing({ host, port }, i) {
     const packet = new RequestPacket('ping');
@@ -708,10 +752,16 @@ class ServerQuery extends EventEmitter {
   }
 
   /**
-   * Send a challenge request packet
-   * This is deprecated
+   * Send a challenge request packet (deprecated)
+   *
+   * @param {Object} connection
+   * @param {string} connection.host
+   * @param {number} connection.port
+   * @param {number} connection._challengePlayer
+   * @param {number} connection index
+   * @returns {Boolean} Whether the request was successful
    */
-  async _requestChallenge({ host, port, _challengePlayer, _challengeRules }, i) {
+  async _requestChallenge({ host, port, _challengePlayer }, i) {
     const packet = new RequestPacket(_challengePlayer ? 'rules' : 'player');
 
     try {
@@ -723,6 +773,10 @@ class ServerQuery extends EventEmitter {
     }
   }
 
+  /**
+   * Create a socket connection and store a reference. This is a promise wrapper for built-in methods
+   * @returns {Promise}
+   */
   async _connect() {
     return new Promise((resolve) => {
       this.socket = createSocket('udp4');
@@ -737,8 +791,9 @@ class ServerQuery extends EventEmitter {
   }
 
   /**
-   * Resolve a hostname to an IPv4 address
-   * Promise wrapper for built-in method
+   * Resolve a hostname to an IPv4 address. This is a promise wrapper for the built-in method
+   * @param {string} hostname Remote host name
+   * @returns {Promise}
    */
   async _resolveHost(hostname) {
     return new Promise((resolve, reject) => {
@@ -753,8 +808,11 @@ class ServerQuery extends EventEmitter {
   }
 
   /**
-   * Send a request packet
-   * Promise wrapper for built-in method
+   * Send a request packet. This is a promise wrapper for the built-in method
+   * @param {RequestPacket} packet Request packet
+   * @param {number} port Remote port
+   * @param {string} address Remote IPv4 address
+   * @returns {Promise}
    */
   async _sendPacket(packet, port, address) {
     return new Promise((resolve, reject) => {
@@ -769,17 +827,19 @@ class ServerQuery extends EventEmitter {
   }
 
   /**
-   * Close the socket connection for the timeout
-   * Emit any results if they were received
+   * Close the socket connection for the timeout. Emit any results if they were received
+   * @returns {Boolean} Always true
    */
   _socketTimeout() {
     this.socket.close();
     this.emit('done', this.connections);
+
+    return true;
   }
 
   /**
-   * Check if every request has been fulfilled for each connection
-   * Called at the end of each request chain (the ping message handler)
+   * Check if every request has been fulfilled for each connection. Called at the end of each request chain (the ping message handler)
+   * @returns {Boolean} Whether all requests have been fulfilled
    */
   _checkIfDone() {
     debug('_checkIfDone => this.connections: %o', this.connections);
@@ -792,7 +852,11 @@ class ServerQuery extends EventEmitter {
       clearTimeout(this.timeout);
 
       this.socket.close();
+
+      return true;
     }
+
+    return false;
   }
 }
 
