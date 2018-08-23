@@ -129,9 +129,9 @@ class ServerQuery extends EventEmitter {
    * @param {number} rinfo.port Remote port
    * @returns {Boolean} Whether the message was parsed
    */
-  _handleSocketMessage(msg, { address, port }) {
-    if (!msg.length) {
-      this.emit('error', new Error('Expected a response.'));
+  _handleSocketMessage(msg, { address, port } = {}) {
+    if (!(msg instanceof Buffer) || !msg.length) {
+      this.emit('error', new Error('Expected a valid response.'));
 
       return false;
     }
@@ -363,30 +363,30 @@ class ServerQuery extends EventEmitter {
 
   /**
    * @typedef {Object} ResultInfo
-   * @property {number} protocol
-   * @property {string} name
-   * @property {string} map
-   * @property {string} folder
-   * @property {string} game
-   * @property {number} id
-   * @property {number} players
-   * @property {number} maxplayers
-   * @property {number} bots
-   * @property {string} type
-   * @property {string} environment
-   * @property {number} visibility
-   * @property {number} vac
-   * @property {number} [mode]
-   * @property {number} [witnesses]
-   * @property {number} [duration]
-   * @property {number} version
-   * @property {number} [port]
-   * @property {string} [steamid]
-   * @property {Object} [spectator]
-   * @property {number} [spectator.port]
-   * @property {string} [spectator.name]
-   * @property {string} [keywords]
-   * @property {string} [gameid]
+   * @property {number} protocol Protocol version used by the server
+   * @property {string} name Name of the server
+   * @property {string} map Map the server has currently loaded
+   * @property {string} folder Name of the folder containing the game files
+   * @property {string} game Full name of the game
+   * @property {number} id Steam Application ID of game
+   * @property {number} players Number of players on the server
+   * @property {number} maxplayers Maximum number of players the server reports it can hold
+   * @property {number} bots Number of bots on the server
+   * @property {string} type Indicates the type of server
+   * @property {string} environment Indicates the operating system of the server
+   * @property {Boolean} visibility  Indicates whether the server requires a password (public/private)
+   * @property {Boolean} vac Specifies whether the server uses VAC (unsecured/secured)
+   * @property {number} [mode] Indicates the game mode
+   * @property {number} [witnesses] The number of witnesses necessary to have a player arrested
+   * @property {number} [duration] Time (in seconds) before a player is arrested while being witnessed
+   * @property {number} version Version of the game installed on the server
+   * @property {number} [port] If present, this specifies which additional data fields will be included
+   * @property {string} [steamid] The server's game port number
+   * @property {Object} [spectator] Server's SteamID
+   * @property {number} [spectator.port] Spectator port number for SourceTV
+   * @property {string} [spectator.name] Name of the spectator server for SourceTV
+   * @property {string} [keywords] Tags that describe the game according to the server
+   * @property {string} [gameid] The server's 64-bit GameID
    */
 
   /**
@@ -475,26 +475,26 @@ class ServerQuery extends EventEmitter {
 
   /**
    * @typedef {Object} ResultInfoObsolete
-   * @property {string} address
-   * @property {string} name
-   * @property {string} map
-   * @property {string} folder
-   * @property {string} game
-   * @property {number} players
-   * @property {number} maxplayers
-   * @property {number} protocol
-   * @property {string} type
-   * @property {string} environment
-   * @property {number} visibility
-   * @property {number|Object} mod
-   * @property {string} mod.link
-   * @property {string} mod.downloadlink
-   * @property {number} mod.version
-   * @property {number} mod.size
-   * @property {number} mod.type
-   * @property {number} mod.dll
-   * @property {number} vac
-   * @property {number} bots
+   * @property {string} address IP address and port of the server
+   * @property {string} name Name of the server
+   * @property {string} map Map the server has currently loaded
+   * @property {string} folder Name of the folder containing the game files
+   * @property {string} game Full name of the game
+   * @property {number} players Number of players on the server
+   * @property {number} maxplayers Maximum number of players the server reports it can hold
+   * @property {number} protocol Protocol version used by the server
+   * @property {string} type Indicates the type of server
+   * @property {string} environment Indicates the operating system of the server
+   * @property {Boolean} visibility Indicates whether the server requires a password (public/private)
+   * @property {Boolean|Object} mod Indicates whether the game is a mod
+   * @property {string} mod.link URL to mod website
+   * @property {string} mod.downloadlink URL to download the mod
+   * @property {number} mod.version Version of mod installed on server
+   * @property {number} mod.size Space (in bytes) the mod takes up
+   * @property {number} mod.type Indicates the type of mod
+   * @property {number} mod.dll Indicates whether mod uses its own DLL
+   * @property {Boolean} vac Specifies whether the server uses VAC (unsecured/secured)
+   * @property {number} bots Number of bots on the server
    */
 
   /**
@@ -558,12 +558,12 @@ class ServerQuery extends EventEmitter {
 
   /**
    * @typedef {Object} ResultPlayer
-   * @property {number} index
-   * @property {string} name
-   * @property {number} score
-   * @property {number} duration
-   * @property {number} deaths
-   * @property {number} money
+   * @property {number} index Index of player chunk starting from 0
+   * @property {string} name Name of the player
+   * @property {number} score Player's score
+   * @property {number} duration Time (in seconds) player has been connected to the server
+   * @property {number} [deaths] Player's deaths
+   * @property {number} [money] Player's money
    */
 
   /**
@@ -579,24 +579,36 @@ class ServerQuery extends EventEmitter {
 
     if (appId == 2400) {
       while (numplayers > 0 && packet.index < packet.data.length) {
+        const index = packet.readInt(1);
+        const name = packet.readString();
+        const score = packet.readInt(4);
+        const duration = packet.readFloat();
+        const deaths = packet.readInt(4);
+        const money = packet.readInt(4);
+
         players.push({
-          index: packet.readInt(1),
-          name: packet.readString(),
-          score: packet.readInt(4),
-          duration: packet.readFloat(),
-          deaths: packet.readInt(4),
-          money: packet.readInt(4)
+          index,
+          name,
+          score,
+          duration,
+          deaths,
+          money
         });
 
         numplayers -= 1;
       }
     } else {
       while (numplayers > 0 && packet.index < packet.data.length) {
+        const index = packet.readInt(1);
+        const name = packet.readString();
+        const score = packet.readInt(4);
+        const duration = packet.readFloat();
+
         players.push({
-          index: packet.readInt(1),
-          name: packet.readString(),
-          score: packet.readInt(4),
-          duration: packet.readFloat()
+          index,
+          name,
+          score,
+          duration
         });
 
         numplayers -= 1;
@@ -610,8 +622,8 @@ class ServerQuery extends EventEmitter {
 
   /**
    * @typedef {Object} ResultRule
-   * @property {string} name
-   * @property {string} value
+   * @property {string} name Name of the rule
+   * @property {string} value Value of the rule
    */
 
   /**
@@ -652,9 +664,9 @@ class ServerQuery extends EventEmitter {
   /**
    * Send an info request packet
    *
-   * @param {Object} connection
-   * @param {string} connection.host
-   * @param {number} connection.port
+   * @param {Object} connection Remote connection
+   * @param {string} connection.host Remote hostname or IPv4 address
+   * @param {number} connection.port Remote port
    * @param {number} connection index
    * @returns {Boolean} Whether the request was successful
    */
@@ -673,10 +685,10 @@ class ServerQuery extends EventEmitter {
   /**
    * Send a player request packet
    *
-   * @param {Object} connection
-   * @param {string} connection.host
-   * @param {number} connection.port
-   * @param {number} connection._challengePlayer
+   * @param {Object} connection Remote connection
+   * @param {string} connection.host Remote hostname or IPv4 address
+   * @param {number} connection.port Remote port
+   * @param {number} connection._challengePlayer Current challenge number for the player query
    * @param {number} connection index
    * @returns {Boolean} Whether the request was successful
    */
@@ -701,10 +713,10 @@ class ServerQuery extends EventEmitter {
   /**
    * Send a rules request packet
    *
-   * @param {Object} connection
-   * @param {string} connection.host
-   * @param {number} connection.port
-   * @param {number} connection._challengeRules
+   * @param {Object} connection Remote connection
+   * @param {string} connection.host Remote hostname or IPv4 address
+   * @param {number} connection.port Remote port
+   * @param {number} connection._challengeRules Current challenge number for the rules query
    * @param {number} connection index
    * @returns {Boolean} Whether the request was successful
    */
@@ -729,9 +741,9 @@ class ServerQuery extends EventEmitter {
   /**
    * Send a ping request packet. Some servers may not respond depending on the game
    *
-   * @param {Object} connection
-   * @param {string} connection.host
-   * @param {number} connection.port
+   * @param {Object} connection Remote connection
+   * @param {string} connection.host Remote hostname or IPv4 address
+   * @param {number} connection.port Remote port
    * @param {number} connection index
    * @returns {Boolean} Whether the request was successful
    */
@@ -754,10 +766,10 @@ class ServerQuery extends EventEmitter {
   /**
    * Send a challenge request packet (deprecated)
    *
-   * @param {Object} connection
-   * @param {string} connection.host
-   * @param {number} connection.port
-   * @param {number} connection._challengePlayer
+   * @param {Object} connection Remote connection
+   * @param {string} connection.host Remote hostname or IPv4 address
+   * @param {number} connection.port Remote port
+   * @param {number} connection._challengePlayer Current challenge number for the player query
    * @param {number} connection index
    * @returns {Boolean} Whether the request was successful
    */

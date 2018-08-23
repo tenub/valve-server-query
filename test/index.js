@@ -15,54 +15,91 @@ describe('ServerQuery', async () => {
   serverQuery.on('challenge', (data) => {});
   serverQuery.on('done', (connections) => {});
 
-  await it('should have a reference of the connections array', async () => {
-    console.info(serverQuery.connections);
-    console.info(servers);
+  it('should have a reference of the connections array', () => {
     assert.deepStrictEqual(serverQuery.connections, servers);
   });
 
 
-  await describe('#connect()', async () => {
-    it('should not have a socket reference before connecting', async (done) => {
+  describe('#connect()', () => {
+    it('should not have a socket reference before connecting', () => {
       assert.strictEqual(serverQuery.socket, null);
-      done();
     });
 
-    await it('should have a socket reference once connected', async () => {
+    it('should have a socket reference once connected', async () => {
       await serverQuery.connect();
 
       assert.ok(serverQuery.socket);
     });
   });
 
-  await describe('#query()', async () => {
-    await it('should return an empty array when the input array is empty', async () => {
+  describe('#query()', () => {
+    it('should return an empty array when the input array is empty', async () => {
       serverQuery.connections = [];
 
       await serverQuery.query();
 
-      serverQuery.on('done', (data) => {
+      serverQuery.once('done', (data) => {
         assert.strictEqual(data, []);
       });
     });
 
-    await it('should return an empty array when the input array is missing', async () => {
-      delete serverQuery.connections;
-
-      await serverQuery.query();
-
-      serverQuery.on('done', (data) => {
-        assert.strictEqual(data, []);
-      });
-    });
-
-    await it('should emit an error when an invalid input connection exists', async () => {
+    it('should emit an error when an invalid input connection exists', async () => {
       serverQuery.connections = ['string'];
 
       await serverQuery.query();
 
-      serverQuery.on('error', (err) => {
+      serverQuery.once('error', (err) => {
         assert.strictEqual(err instanceof Error, true);
+      });
+    });
+
+    it('should emit an error when a connection is not running a game server' , async () => {
+      serverQuery.connections = [{ host: '0.0.0.0', port: 27015 }];
+
+      await serverQuery.query();
+
+      serverQuery.once('error', (err) => {
+        assert.strictEqual(err instanceof Error, true);
+      });
+    });
+  });
+
+  describe('#_handleSocketError()', () => {
+    it('should emit an error when passed', async () => {
+      serverQuery._handleSocketError(new Error('Test error'));
+
+      serverQuery.once('error', (err) => {
+        assert.strictEqual(err instanceof Error, true);
+      });
+    });
+  });
+
+  describe('#_handleSocketMessage()', () => {
+    it('should emit an error when the message does not exist', async () => {
+      serverQuery._handleSocketMessage();
+
+      serverQuery.once('error', (err) => {
+        assert.strictEqual(err instanceof Error, true);
+      });
+    });
+
+    it('should emit an error when the message has no size', async () => {
+      serverQuery._handleSocketMessage(Buffer.from([]));
+
+      serverQuery.once('error', (err) => {
+        assert.strictEqual(err instanceof Error, true);
+      });
+    });
+
+    it('should emit an error when the message is received from a connection that does not exist in the reference array', (done) => {
+      serverQuery.connections = servers;
+      const [testServer] = serverQuery.connections;
+
+      serverQuery._handleSocketMessage(Buffer.from([0x00]), testServer);
+
+      serverQuery.once('error', (err) => {
+        assert.strictEqual(err instanceof Error, true);
+        done();
       });
     });
   });
