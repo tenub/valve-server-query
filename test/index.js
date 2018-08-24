@@ -38,9 +38,6 @@ describe('ServerQuery', async () => {
 
       await serverQuery.query();
 
-      serverQuery.once('done', (data) => {
-        assert.strictEqual(data, []);
-      });
     });
 
     it('should emit an error when an invalid input connection exists', async () => {
@@ -48,9 +45,6 @@ describe('ServerQuery', async () => {
 
       await serverQuery.query();
 
-      serverQuery.once('error', (err) => {
-        assert.strictEqual(err instanceof Error, true);
-      });
     });
 
     it('should emit an error when a connection is not running a game server' , async () => {
@@ -58,9 +52,6 @@ describe('ServerQuery', async () => {
 
       await serverQuery.query();
 
-      serverQuery.once('error', (err) => {
-        assert.strictEqual(err instanceof Error, true);
-      });
     });
   });
 
@@ -68,9 +59,6 @@ describe('ServerQuery', async () => {
     it('should emit an error when passed', async () => {
       serverQuery._handleSocketError(new Error('Test error'));
 
-      serverQuery.once('error', (err) => {
-        assert.strictEqual(err instanceof Error, true);
-      });
     });
   });
 
@@ -78,17 +66,11 @@ describe('ServerQuery', async () => {
     it('should emit an error when the message does not exist', async () => {
       serverQuery._handleSocketMessage();
 
-      serverQuery.once('error', (err) => {
-        assert.strictEqual(err instanceof Error, true);
-      });
     });
 
     it('should emit an error when the message has no size', async () => {
       serverQuery._handleSocketMessage(Buffer.from([]));
 
-      serverQuery.once('error', (err) => {
-        assert.strictEqual(err instanceof Error, true);
-      });
     });
 
     it('should emit an error when the message is received from a connection that does not exist in the reference array', (done) => {
@@ -97,10 +79,6 @@ describe('ServerQuery', async () => {
 
       serverQuery._handleSocketMessage(Buffer.from([0x00]), testServer);
 
-      serverQuery.once('error', (err) => {
-        assert.strictEqual(err instanceof Error, true);
-        done();
-      });
     });
   });
 });

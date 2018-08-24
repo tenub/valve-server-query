@@ -113,12 +113,12 @@ class ServerQuery extends EventEmitter {
   /**
    * Event handler for socket errors that emits an error if the socket receives one
    * @param {Error} err Incoming error
-   * @returns {Boolean} Always true
+   * @returns {Error} Always true
    */
   _handleSocketError(err) {
     this.emit('error', err);
 
-    return true;
+    return err;
   }
 
   /**
@@ -131,9 +131,11 @@ class ServerQuery extends EventEmitter {
    */
   _handleSocketMessage(msg, { address, port } = {}) {
     if (!(msg instanceof Buffer) || !msg.length) {
-      this.emit('error', new Error('Expected a valid response.'));
+      const err = new Error('Expected a valid response.');
 
-      return false;
+      this.emit('error', err);
+
+      return err;
     }
 
     const connectionIndex = this.connections.findIndex((connection) => {
@@ -141,9 +143,11 @@ class ServerQuery extends EventEmitter {
     });
 
     if (connectionIndex < 0) {
-      this.emit('error', new Error('Could not find a matching connection to received message.'));
+      const err = new Error('Could not find a matching connection to received message.');
 
-      return false;
+      this.emit('error', err);
+
+      return err;
     }
 
     const connection = this.connections[connectionIndex];
@@ -176,10 +180,13 @@ class ServerQuery extends EventEmitter {
         break;
       }
 
-      default:
-        this.emit('error', new Error(`Expected a valid response header but got "${headerFormat}.`));
+      default: {
+        const err = new Error(`Expected a valid response header but got "${headerFormat}.`);
 
-        return false;
+        this.emit('error', err);
+
+        return err;
+      }
     }
 
     const headerType = packet.readInt(1);
@@ -195,7 +202,7 @@ class ServerQuery extends EventEmitter {
         // get challenge for player
         this._requestChallenge(connection, connectionIndex);
 
-        break;
+        return data;
       }
 
       // obsolete GoldSource info response
@@ -208,7 +215,7 @@ class ServerQuery extends EventEmitter {
         // get challenge for player
         this._requestChallenge(connection, connectionIndex);
 
-        break;
+        return data;
       }
 
       // player response
@@ -224,7 +231,7 @@ class ServerQuery extends EventEmitter {
         // get challenge for rules
         this._requestChallenge(connection, connectionIndex);
 
-        break;
+        return data;
       }
 
       // rules response
@@ -236,7 +243,7 @@ class ServerQuery extends EventEmitter {
 
         this._requestPing(connection, connectionIndex);
 
-        break;
+        return data;
       }
 
       // ping response
@@ -250,7 +257,7 @@ class ServerQuery extends EventEmitter {
 
         this._checkIfDone();
 
-        break;
+        return data;
       }
 
       // challenge response
@@ -267,17 +274,18 @@ class ServerQuery extends EventEmitter {
           this._requestRules(connection, connectionIndex);
         }
 
-        break;
+        return data;
       }
 
       // unknown response
-      default:
-        this.emit('error', new Error(`Expected a valid type header but got "${headerType}".`));
+      default: {
+        const err = new Error(`Expected a valid type header but got "${headerType}".`);
 
-        return false;
+        this.emit('error', err);
+
+        return err;
+      }
     }
-
-    return true;
   }
 
   /**
@@ -675,10 +683,10 @@ class ServerQuery extends EventEmitter {
 
     try {
       await this._sendPacket(packet, port, host);
-      return true;
+      return packet;
     } catch (err) {
       this.emit('error', err);
-      return false;
+      return err;
     }
   }
 
@@ -703,10 +711,10 @@ class ServerQuery extends EventEmitter {
 
     try {
       await this._sendPacket(packet, port, host);
-      return true;
+      return packet;
     } catch (err) {
       this.emit('error', err);
-      return false;
+      return err;
     }
   }
 
@@ -731,10 +739,10 @@ class ServerQuery extends EventEmitter {
 
     try {
       await this._sendPacket(packet, port, host);
-      return true;
+      return packet;
     } catch (err) {
       this.emit('error', err);
-      return false;
+      return err;
     }
   }
 
@@ -756,10 +764,10 @@ class ServerQuery extends EventEmitter {
 
       await this._sendPacket(packet, port, host);
 
-      return true;
+      return packet;
     } catch (err) {
       this.emit('error', err);
-      return false;
+      return err;
     }
   }
 
@@ -778,10 +786,10 @@ class ServerQuery extends EventEmitter {
 
     try {
       await this._sendPacket(packet, port, host);
-      return true;
+      return packet;
     } catch (err) {
       this.emit('error', err);
-      return false;
+      return err;
     }
   }
 
@@ -846,7 +854,7 @@ class ServerQuery extends EventEmitter {
     this.socket.close();
     this.emit('done', this.connections);
 
-    return true;
+    return this.connections;
   }
 
   /**
