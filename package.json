@@ -1,13 +1,13 @@
 {
   "name": "valve-server-query",
-  "version": "0.1.0",
+  "version": "0.1.5",
   "description": "Query game servers using the Steam protocol",
   "main": "lib/index.js",
   "scripts": {
     "build": "babel src/ -d lib/",
     "doc": "jsdoc -d doc/ src/",
     "prepublishOnly": "npm run build",
-    "test": "cross-env DEBUG=query mocha -r babel-register"
+    "test": "cross-env DEBUG=query mocha -r @babel/register"
   },
   "repository": {
     "type": "git",
@@ -20,19 +20,19 @@
   },
   "homepage": "https://github.com/tenub/valve-server-query#readme",
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-eslint": "^8.2.6",
-    "babel-plugin-transform-object-rest-spread": "^6.23.0",
-    "babel-preset-env": "^1.7.0",
+    "@babel/cli": "^7.4.4",
+    "@babel/core": "^7.4.4",
+    "@babel/preset-env": "^7.4.4",
+    "@babel/register": "^7.4.4",
     "cross-env": "^5.2.0",
-    "debug": "^3.1.0",
-    "eslint": "^5.4.0",
+    "debug": "^4.1.1",
+    "eslint": "^5.16.0",
     "jsdoc": "^3.5.5",
-    "mocha": "^5.2.0"
+    "mocha": "^6.1.4"
   },
   "dependencies": {
-    "int64-buffer": "^0.1.10",
+    "int64-buffer": "^0.99.1007",
     "seek-bzip": "^1.0.5",
-    "winston": "^3.0.0"
+    "winston": "^3.2.1"
   }
 }
